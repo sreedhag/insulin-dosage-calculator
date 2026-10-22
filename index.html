@@ -5,92 +5,165 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Insulin Bolus Calculator – Phase 1</title>
 <style>
-  :root { --ink:#3b1f6b; --line:#8c7bb5; --paper:#fdfcf7; --ok:#1e6b3a; --warn:#8a4b00; }
+  :root {
+    --navy: #0b1a2e;
+    --navy-2: #13294a;
+    --blue: #2f6fb0;
+    --blue-soft: #dbe7f5;
+    --ink: #111827;
+    --muted: #5b6472;
+    --line: #e3e6ec;
+    --bg: #f4f5f7;
+    --white: #ffffff;
+    --warn-bg: #fff6e5;
+    --warn-ink: #7a4a00;
+    --err: #b42318;
+  }
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, system-ui, Segoe UI, Roboto, sans-serif; background:#eceaf2; margin:0; padding:16px; color:#222; }
-  .sheet { max-width: 640px; margin: 0 auto; background: var(--paper); border:2px solid var(--line); border-radius:10px; padding:20px 22px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
-  h1 { font-size:1.35rem; color:var(--ink); margin:0 0 4px; }
-  .sub { color:#555; font-size:.9rem; margin-bottom:14px; }
-  .notice { background:#fff4e0; border:1px solid #e6b86b; color:var(--warn); padding:10px 12px; border-radius:6px; font-size:.85rem; margin-bottom:16px; }
-  .row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px dashed var(--line); }
-  .row label { flex:1; font-weight:600; color:var(--ink); }
-  .row small { display:block; font-weight:400; color:#666; font-size:.78rem; }
-  .row input[type=number] { width:120px; padding:8px; font-size:1.05rem; border:1.5px solid var(--line); border-radius:6px; background:#fff; text-align:right; }
-  .row input:focus { outline:2px solid var(--ink); }
-  .unit { width:44px; color:#555; font-size:.9rem; }
-  .toggle { display:flex; align-items:center; gap:8px; margin:14px 0; font-size:.9rem; color:var(--ink); }
-  .actions { display:flex; gap:10px; margin-top:16px; }
-  button { flex:1; padding:12px; font-size:1rem; border-radius:8px; border:none; cursor:pointer; }
-  #calc { background:var(--ink); color:#fff; font-weight:600; }
-  #clear { background:#e4e0ef; color:var(--ink); }
-  .error { color:#b00020; font-size:.9rem; margin-top:12px; min-height:1em; }
-  #results { margin-top:18px; display:none; border-top:2px solid var(--line); padding-top:14px; }
-  .step { font-family: ui-monospace, Menlo, monospace; font-size:.9rem; padding:4px 0; color:#333; }
-  .total { margin-top:12px; background:#f1ecfa; border:2px solid var(--ink); border-radius:8px; padding:14px; text-align:center; }
-  .total .big { font-size:2rem; font-weight:700; color:var(--ink); }
-  .total .lbl { font-size:.85rem; color:#555; }
-  .verify { margin-top:12px; font-size:.82rem; color:var(--warn); }
-  @media print { body{background:#fff;padding:0} .sheet{box-shadow:none;border:1px solid #999} .actions,.notice{display:none} }
+  body {
+    margin: 0;
+    font-family: "Inter", -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  .hero {
+    background: linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 60%, #1d4a7a 100%);
+    color: var(--white);
+    padding: 40px 20px 110px;
+  }
+  .nav { max-width: 760px; margin: 0 auto 28px; display: flex; justify-content: space-between; align-items: center; font-size: .85rem; opacity: .9; }
+  .brand { font-weight: 700; letter-spacing: .02em; }
+  .hero h1 {
+    max-width: 760px; margin: 0 auto;
+    font-size: clamp(2rem, 5vw, 3rem);
+    line-height: 1.05; letter-spacing: -.02em; font-weight: 800;
+  }
+  .hero p { max-width: 560px; margin: 14px auto 0; color: #c9d6e8; font-size: 1rem; line-height: 1.5; }
+  .wrap { max-width: 760px; margin: -80px auto 40px; padding: 0 16px; }
+  .card {
+    background: var(--white);
+    border-radius: 20px;
+    box-shadow: 0 18px 40px rgba(11, 26, 46, .14);
+    padding: 26px 26px 22px;
+  }
+  .card h2 { margin: 0 0 4px; font-size: 1.3rem; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: .9rem; margin-bottom: 16px; }
+  .notice {
+    background: var(--warn-bg); color: var(--warn-ink);
+    border-radius: 12px; padding: 12px 14px; font-size: .85rem; margin-bottom: 18px; line-height: 1.45;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+  .field label { display: block; font-weight: 600; font-size: .85rem; margin-bottom: 6px; color: var(--navy-2); }
+  .field small { display: block; color: var(--muted); font-size: .75rem; margin-top: 4px; }
+  .input-wrap { position: relative; }
+  .field input {
+    width: 100%; padding: 12px 56px 12px 14px; font-size: 1.05rem;
+    border: 1.5px solid var(--line); border-radius: 12px; background: var(--white); color: var(--ink);
+  }
+  .field input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+  .unit { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: .75rem; color: var(--muted); pointer-events: none; }
+  .full { grid-column: 1 / -1; }
+  .toggle { display: flex; align-items: center; gap: 10px; margin: 18px 0 6px; font-size: .9rem; color: var(--navy-2); }
+  .toggle input { width: 18px; height: 18px; accent-color: var(--blue); }
+  .actions { display: flex; gap: 10px; margin-top: 18px; }
+  button {
+    flex: 1; padding: 14px; font-size: 1rem; font-weight: 600; border: none; border-radius: 999px; cursor: pointer;
+  }
+  #calc { background: var(--ink); color: var(--white); }
+  #calc:hover { background: #26303f; }
+  #clear { background: var(--bg); color: var(--ink); }
+  #clear:hover { background: var(--line); }
+  .error { color: var(--err); font-size: .9rem; margin-top: 12px; min-height: 1.1em; }
+  #results { display: none; margin-top: 20px; border-top: 1px solid var(--line); padding-top: 18px; }
+  .step { font-family: ui-monospace, Menlo, monospace; font-size: .85rem; color: #374151; padding: 5px 0; }
+  .total {
+    margin-top: 14px; background: var(--navy); color: var(--white);
+    border-radius: 16px; padding: 18px; text-align: center;
+  }
+  .total .lbl { font-size: .8rem; color: #9fb4d1; text-transform: uppercase; letter-spacing: .08em; }
+  .total .big { font-size: 2.2rem; font-weight: 800; margin-top: 4px; }
+  .verify { margin-top: 12px; font-size: .8rem; color: var(--warn-ink); text-align: center; }
+  footer { text-align: center; color: var(--muted); font-size: .75rem; padding: 0 16px 32px; }
+  @media (max-width: 560px) {
+    .grid { grid-template-columns: 1fr; }
+    .hero { padding-bottom: 96px; }
+  }
+  @media print {
+    body { background: #fff; } .hero, .actions, .notice, footer { display: none; }
+    .wrap { margin: 0; } .card { box-shadow: none; border: 1px solid #999; }
+  }
 </style>
 </head>
 <body>
-<div class="sheet">
-  <h1>Insulin Bolus Calculator</h1>
-  <div class="sub">Worksheet-style calculator. Enter values, then calculate. Nothing is stored in this phase.</div>
-  <div class="notice">
-    <strong>Calculation aid only.</strong> Always confirm the doses against the prescriber's orders and your facility's protocol before administering. Check units, BG meter reading and carb count.
-  </div>
+<header class="hero">
+  <div class="nav"><span class="brand">Bolus Calc</span><span>Worksheet</span></div>
+  <h1>Insulin dose math,<br>finally clear.</h1>
+  <p>Enter the numbers from the order and the meter. Get the meal bolus, correction, and total in seconds.</p>
+</header>
 
-  <form id="form" novalidate>
-    <div class="row">
-      <label>Current blood glucose<small>Meter reading</small></label>
-      <input type="number" id="bg" step="any" min="0" inputmode="decimal" placeholder="e.g. 180">
-      <span class="unit">mg/dL</span>
-    </div>
-    <div class="row">
-      <label>Target blood glucose<small>Target BG from orders</small></label>
-      <input type="number" id="target" step="any" min="0" inputmode="decimal" placeholder="e.g. 120">
-      <span class="unit">mg/dL</span>
-    </div>
-    <div class="row">
-      <label>Correction factor<small>1 unit lowers BG by this much</small></label>
-      <input type="number" id="cf" step="any" min="0" inputmode="decimal" placeholder="e.g. 50">
-      <span class="unit">mg/dL/unit</span>
-    </div>
-    <div class="row">
-      <label>Carb ratio<small>1 unit covers this many grams</small></label>
-      <input type="number" id="ratio" step="any" min="0" inputmode="decimal" placeholder="e.g. 15">
-      <span class="unit">g/unit</span>
-    </div>
-    <div class="row">
-      <label>Total carbs in meal</label>
-      <input type="number" id="carbs" step="any" min="0" inputmode="decimal" placeholder="e.g. 45">
-      <span class="unit">g</span>
+<main class="wrap">
+  <section class="card">
+    <h2>Dose worksheet</h2>
+    <div class="sub">Calculated in your browser. Nothing is stored in this phase.</div>
+    <div class="notice">
+      <strong>Calculation aid only.</strong> Confirm every dose against the prescriber's orders and your facility's protocol. Check units, meter reading and carb count.
     </div>
 
-    <label class="toggle">
-      <input type="checkbox" id="allowNeg">
-      Allow negative correction when BG is below target (subtracts units)
-    </label>
+    <form id="form" novalidate>
+      <div class="grid">
+        <div class="field">
+          <label for="bg">Current blood glucose</label>
+          <div class="input-wrap"><input type="number" id="bg" step="any" min="0" inputmode="decimal" placeholder="180"><span class="unit">mg/dL</span></div>
+          <small>From the meter</small>
+        </div>
+        <div class="field">
+          <label for="target">Target blood glucose</label>
+          <div class="input-wrap"><input type="number" id="target" step="any" min="0" inputmode="decimal" placeholder="120"><span class="unit">mg/dL</span></div>
+          <small>From the orders</small>
+        </div>
+        <div class="field">
+          <label for="cf">Correction factor</label>
+          <div class="input-wrap"><input type="number" id="cf" step="any" min="0" inputmode="decimal" placeholder="50"><span class="unit">mg/dL/u</span></div>
+          <small>1 unit lowers BG by this much</small>
+        </div>
+        <div class="field">
+          <label for="ratio">Carb ratio</label>
+          <div class="input-wrap"><input type="number" id="ratio" step="any" min="0" inputmode="decimal" placeholder="15"><span class="unit">g/u</span></div>
+          <small>1 unit covers this many grams</small>
+        </div>
+        <div class="field full">
+          <label for="carbs">Total carbs in meal</label>
+          <div class="input-wrap"><input type="number" id="carbs" step="any" min="0" inputmode="decimal" placeholder="45"><span class="unit">g</span></div>
+        </div>
+      </div>
 
-    <div class="actions">
-      <button type="button" id="clear">Clear</button>
-      <button type="submit" id="calc">Calculate</button>
-    </div>
-    <div class="error" id="error" role="alert"></div>
-  </form>
+      <label class="toggle">
+        <input type="checkbox" id="allowNeg">
+        Allow negative correction when BG is below target (subtracts units)
+      </label>
 
-  <div id="results">
-    <div class="step" id="s1"></div>
-    <div class="step" id="s2"></div>
-    <div class="step" id="s3"></div>
-    <div class="total">
-      <div class="lbl">Total bolus dose</div>
-      <div class="big" id="total"></div>
+      <div class="actions">
+        <button type="button" id="clear">Clear</button>
+        <button type="submit" id="calc">Calculate</button>
+      </div>
+      <div class="error" id="error" role="alert"></div>
+    </form>
+
+    <div id="results">
+      <div class="step" id="s1"></div>
+      <div class="step" id="s2"></div>
+      <div class="step" id="s3"></div>
+      <div class="total">
+        <div class="lbl">Total bolus dose</div>
+        <div class="big" id="total"></div>
+      </div>
+      <div class="verify">Verify these numbers against the order before giving the dose.</div>
     </div>
-    <div class="verify">Verify these numbers against the order before giving the dose.</div>
-  </div>
-</div>
+  </section>
+</main>
+
+<footer>Phase 1 · Calculation aid only · No data is saved</footer>
 
 <script>
 (function () {
@@ -121,13 +194,14 @@
 
     const mealBolus = round1(carbs / ratio);
     let corrRaw = (bg - target) / cf;
+    const wasNegative = corrRaw < 0;
     if (!$('allowNeg').checked && corrRaw < 0) corrRaw = 0;
     const corrBolus = round1(corrRaw);
     const total = round1(mealBolus + corrBolus);
 
     $('s1').textContent = `Meal bolus: ${carbs} g ÷ ${ratio} = ${fmt(mealBolus)} units`;
     $('s2').textContent = `Correction: (${bg} − ${target}) ÷ ${cf} = ${fmt(corrBolus)} units` +
-      (!$('allowNeg').checked && (bg - target) / cf < 0 ? ' (negative set to 0)' : '');
+      (!$('allowNeg').checked && wasNegative ? ' (negative set to 0)' : '');
     $('s3').textContent = `Total: ${fmt(mealBolus)} + ${fmt(corrBolus)} = ${fmt(total)} units`;
     $('total').textContent = fmt(total) + ' units';
     $('results').style.display = 'block';
