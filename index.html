@@ -83,6 +83,8 @@
   }
   .total .lbl { font-size: .8rem; color: #9fb4d1; text-transform: uppercase; letter-spacing: .08em; }
   .total .big { font-size: 2.2rem; font-weight: 800; margin-top: 4px; }
+  #download { display: none; width: 100%; margin-top: 12px; background: var(--white); color: var(--navy-2); border: 1.5px solid var(--navy-2); }
+  #download:hover { background: var(--bg); }
   .verify { margin-top: 12px; font-size: .8rem; color: var(--warn-ink); text-align: center; }
   footer { text-align: center; color: var(--muted); font-size: .75rem; padding: 0 16px 32px; }
   @media (max-width: 560px) {
@@ -159,6 +161,7 @@
         <div class="big" id="total"></div>
       </div>
       <div class="verify">Verify these numbers against the order before giving the dose.</div>
+      <button type="button" id="download">Download worksheet</button>
     </div>
   </section>
 </main>
@@ -176,6 +179,7 @@
     return v === '' ? NaN : Number(v);
   }
 
+  let last = null;
   function show(msg) { $('error').textContent = msg || ''; }
 
   $('form').addEventListener('submit', e => {
@@ -205,6 +209,48 @@
     $('s3').textContent = `Total: ${fmt(mealBolus)} + ${fmt(corrBolus)} = ${fmt(total)} units`;
     $('total').textContent = fmt(total) + ' units';
     $('results').style.display = 'block';
+    last = {
+      when: new Date(), bg, target, cf, ratio, carbs,
+      allowNeg: $('allowNeg').checked, mealBolus, corrBolus, total, wasNegative
+    };
+    $('download').style.display = 'block';
+  });
+
+  $('download').addEventListener('click', () => {
+    if (!last) return;
+    const d = last.when;
+    const pad = n => String(n).padStart(2, '0');
+    const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+    const negNote = (!last.allowNeg && last.wasNegative) ? ' (negative set to 0)' : '';
+    const text = [
+      'INSULIN BOLUS WORKSHEET',
+      `Date: ${d.toLocaleString()}`,
+      '',
+      'INPUTS',
+      `Current blood glucose: ${last.bg} mg/dL`,
+      `Target blood glucose:  ${last.target} mg/dL`,
+      `Correction factor:     ${last.cf} mg/dL per unit`,
+      `Carb ratio:            ${last.ratio} g per unit`,
+      `Total carbs in meal:   ${last.carbs} g`,
+      `Allow negative correction: ${last.allowNeg ? 'yes' : 'no'}`,
+      '',
+      'CALCULATION',
+      `Meal bolus:  ${last.carbs} g / ${last.ratio} = ${fmt(last.mealBolus)} units`,
+      `Correction:  (${last.bg} - ${last.target}) / ${last.cf} = ${fmt(last.corrBolus)} units${negNote}`,
+      `Total:       ${fmt(last.mealBolus)} + ${fmt(last.corrBolus)} = ${fmt(last.total)} units`,
+      '',
+      `TOTAL BOLUS DOSE: ${fmt(last.total)} units`,
+      '',
+      'Calculation aid only. Verify against the prescriber orders and facility protocol before giving any dose.'
+    ].join('\n');
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bolus-worksheet-${stamp}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   });
 
   $('clear').addEventListener('click', () => {
@@ -212,6 +258,8 @@
     $('allowNeg').checked = false;
     show('');
     $('results').style.display = 'none';
+    $('download').style.display = 'none';
+    last = null;
   });
 })();
 </script>
